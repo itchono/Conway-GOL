@@ -11,13 +11,14 @@ INIT
 final int TILE_SIZE = 20;
 final int PADDING = 1;
 
-final int GRID_OFFSET = 100;
+final int GRID_OFFSET = 50;
 
 final int GRID_W = 50;
-final int GRID_H = 25;
+final int GRID_H = 30;
 
 GTile[][] tiles; // tiles for map
 PlayPauseButton pBtn; // button to play and pause
+ResetButton rBtn; // button to reset
 
 int MODE = 0;
 
@@ -36,7 +37,9 @@ void setup() {
   // init processing stuff
   size(1280, 720);
   noStroke();
-  frameRate(5);
+  frameRate(10);
+  textSize(16);
+  textAlign(CENTER, CENTER);
 
   // init grid
   tiles = new GTile[GRID_W][GRID_H];
@@ -45,8 +48,10 @@ void setup() {
     for (int y = 0; y < GRID_H; y++) tiles[x][y] = new GTile(x, y, position(x), position(y));
   }
 
-  // init button
-  pBtn = new PlayPauseButton(1200, 100, 70);
+  // init buttons
+  pBtn = new PlayPauseButton(1175, 150, 70);
+
+  rBtn = new ResetButton(1175, 650, 70);
 }
 
 
@@ -125,6 +130,7 @@ class GTile {
 
     // draw
     if (alive) fill(10, 200, 10);
+    else if (MODE == 1) fill(100, 100, 100);
     else fill(150, 150, 150);
 
     square(posX, posY, TILE_SIZE);
@@ -139,6 +145,7 @@ class GTile {
 }
 
 class PlayPauseButton {
+  // Serves as the main play/pause button in the game. Also displays text.
 
   private int posX, posY, SIZE;
   // position on screen
@@ -152,10 +159,25 @@ class PlayPauseButton {
   void update() {
     // draw
 
-    if (MODE == 0) fill(150, 150, 150);
-    else fill(150, 200, 150);
+    if (MODE == 0) {
+      fill(150, 150, 150);
+      circle(posX, posY, SIZE);
 
-    circle(posX, posY, SIZE);
+      fill(255, 255, 255);
+      text("Click on the tiles on the grid to birth or kill squares. Then, click the circle to begin.", posX - SIZE/2, posY + SIZE/2, 100, 400);
+      text("Start", posX - SIZE/2, posY- SIZE/2, SIZE, SIZE);
+      
+    }
+    else {
+      fill(150, 200, 150);
+      circle(posX, posY, SIZE);
+
+      fill(255, 255, 255);
+      text("Simulation Running. To terminate, click the circle.", posX - SIZE/2, posY + SIZE/2, 100, 400);
+      text("Stop", posX - SIZE/2, posY - SIZE/2, SIZE, SIZE);
+    }
+
+    
   }
 
   void click() {
@@ -163,14 +185,50 @@ class PlayPauseButton {
   }
 }
 
+class ResetButton {
+  // Resets the Game
+
+  private int posX, posY, SIZE;
+  // position on screen
+
+  public ResetButton(int x, int y, int s) {
+    posX = x;
+    posY = y;
+    SIZE = s;
+  }
+
+  void update() {
+    // draw
+
+    fill(150, 150, 150);
+    circle(posX, posY, SIZE);
+
+    fill(255, 255, 255);
+    text("Reset", posX - SIZE/2, posY- SIZE/2, SIZE, SIZE);
+    
+  }
+
+  void click() {
+
+    if (inCirc(posX, posY, SIZE)) {
+      MODE = 0;
+      for (int x = 0; x < GRID_W; x++) {
+        for (int y = 0; y < GRID_H; y++) tiles[x][y].alive = false;
+      }
+
+    } 
+  }
+}
+
 void mouseClicked() {
   pBtn.click();
+  rBtn.click();
 
   int clickX = mouseToCell(mouseX);
   int clickY = mouseToCell(mouseY);
   if (clickX >= 0 && clickX < GRID_W && clickY >= 0 && clickY < GRID_H) tiles[clickX][clickY].click();
 
-  redraw(); // update screen
+  draw(); // update screen
 }
 
 
@@ -191,5 +249,6 @@ void draw() {
   }
 
   pBtn.update();
+  rBtn.update();
   
 }
