@@ -36,18 +36,17 @@ void setup() {
   // init processing stuff
   size(1280, 720);
   noStroke();
-
-  tiles = new GTile[GRID_W][GRID_H];
+  frameRate(5);
 
   // init grid
+  tiles = new GTile[GRID_W][GRID_H];
+
   for (int x = 0; x < GRID_W; x++) {
-    for (int y = 0; y < GRID_H; y++) {
-      tiles[x][y] = new GTile(x, y, position(x), position(y));
-    } 
+    for (int y = 0; y < GRID_H; y++) tiles[x][y] = new GTile(x, y, position(x), position(y));
   }
 
+  // init button
   pBtn = new PlayPauseButton(1200, 100, 70);
-
 }
 
 
@@ -71,14 +70,22 @@ public boolean inCirc(int pX, int pY, int dia) {
   return sqrt(sq(mouseX-pX) + sq(mouseY-pY)) < dia/2;
 }
 
-class GTile {
+public int wrap(int n, int limit) {
+  // allows wrap-around access of indices
+  if (n >= 0 && n < limit) return n;
+  else if (n < 0) return n + limit; // underflow
+  else return n - limit; // overflow
+}
 
+
+class GTile {
   // Drawing mechanics
   public int indX, indY; // indices in the array
   private int posX, posY; // position on screen
 
   // game Mechanics
-  private boolean alive;
+  public boolean alive;
+  private boolean nextState;
 
   // FUNCTIONS
 
@@ -90,15 +97,35 @@ class GTile {
     posY = py;
   }
 
-  void update() {
-    // draw
+  void prepareState() {
+    // perform GOL mechanics
 
-    if (alive) {
-      fill(10, 10, 200);
+    int neighbours = 0;
+
+    // check 8 surrounding cells
+    int[] acX = {-1, 0, 1, -1, 1, -1, 0, 1};
+    int[] acY = {-1, -1, -1, 0, 0, 1, 1, 1};
+
+    for (int i = 0; i < 8; i++) {
+      if (tiles[wrap(indX + acX[i], GRID_W)][wrap(indY + acY[i], GRID_H)].alive) neighbours++;
+      // adds to neighbours if tile is alive
     }
-    else {
-      fill(150, 150, 150);
-    }
+
+    nextState = ((neighbours == 2 && alive) || neighbours == 3); // set next state
+  }
+
+  void propagateState() {
+    // updates all states after checking
+    alive = nextState;
+  }
+
+  void update() {
+
+    if (MODE == 1) propagateState(); // update, if we're playing
+
+    // draw
+    if (alive) fill(10, 200, 10);
+    else fill(150, 150, 150);
 
     square(posX, posY, TILE_SIZE);
   }
@@ -129,27 +156,21 @@ class PlayPauseButton {
     else fill(150, 200, 150);
 
     circle(posX, posY, SIZE);
-
   }
 
   void click() {
-
     if (inCirc(posX, posY, SIZE)) MODE = 1-MODE;
-    
-    else {
-      int clickX = mouseToCell(mouseX);
-      int clickY = mouseToCell(mouseY);
-      if (clickX >= 0 && clickX < GRID_W && clickY >= 0 && clickY < GRID_H) tiles[clickX][clickY].click();
-    }
-
   }
-
 }
 
 void mouseClicked() {
-
   pBtn.click();
 
+  int clickX = mouseToCell(mouseX);
+  int clickY = mouseToCell(mouseY);
+  if (clickX >= 0 && clickX < GRID_W && clickY >= 0 && clickY < GRID_H) tiles[clickX][clickY].click();
+
+  redraw(); // update screen
 }
 
 
@@ -157,6 +178,14 @@ void draw() {
   clear();
   background(60, 60, 60);
 
+  if (MODE == 1) {
+    // calculate
+    for (int x = 0; x < GRID_W; x++) {
+      for (int y = 0; y < GRID_H; y++) tiles[x][y].prepareState();
+    }
+  }
+
+  // draw
   for (int x = 0; x < GRID_W; x++) {
     for (int y = 0; y < GRID_H; y++) tiles[x][y].update();
   }
